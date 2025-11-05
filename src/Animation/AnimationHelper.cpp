@@ -54,16 +54,16 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
                                                                             float time) {
   PointDefinitionW localDefinitePosition = animationData.definitePosition;
 
-  [[maybe_unused]] bool last;
+
   std::optional<Vector3> pathDefinitePosition =
-      localDefinitePosition ? std::optional(localDefinitePosition.InterpolateVec3(time, last)) : std::nullopt;
+      localDefinitePosition ? std::optional(localDefinitePosition.InterpolateVec3(time)) : std::nullopt;
 
   // track animation only
   if (!pathDefinitePosition && !tracks.empty()) {
     if (tracks.size() == 1) {
       auto track = tracks.front();
       pathDefinitePosition =
-          track.GetPathPropertyNamed(PropertyNames::DefinitePosition).InterpolateVec3(time, last);
+          track.GetPathPropertyNamed(PropertyNames::DefinitePosition).InterpolateVec3(time);
     } else {
       auto positions = Animation::getPathPropertiesVec3(tracks, PropertyNames::DefinitePosition, time);
       pathDefinitePosition = Animation::addVector3s(positions);
@@ -73,7 +73,7 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
   if (!pathDefinitePosition) return std::nullopt;
 
   auto const position = animationData.position;
-  std::optional<Vector3> pathPosition = position ? std::optional(position.InterpolateVec3(time, last)) : std::nullopt;
+  std::optional<Vector3> pathPosition = position ? std::optional(position.InterpolateVec3(time)) : std::nullopt;
   std::optional<Vector3> trackPosition;
 
   std::optional<Vector3> positionOffset;
@@ -83,7 +83,7 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
       auto track = tracks.front();
 
       if (!pathPosition)
-        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time, last);
+        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
 
       trackPosition = track.GetPropertyNamed(PropertyNames::Position).GetVec3();
     } else {
@@ -113,8 +113,6 @@ ObjectOffset AnimationHelper::GetObjectOffset(AnimationObjectData const& animati
                                               float time) {
   ObjectOffset offset;
 
-  [[maybe_unused]] bool last;
-
   PointDefinitionW position = animationData.position;
   PointDefinitionW rotation = animationData.rotation;
   PointDefinitionW scale = animationData.scale;
@@ -124,16 +122,16 @@ ObjectOffset AnimationHelper::GetObjectOffset(AnimationObjectData const& animati
   PointDefinitionW cuttable = animationData.cuttable;
 
   // Get path properties from animation data
-  std::optional<Vector3> pathPosition = position ? std::optional(position.InterpolateVec3(time, last)) : std::nullopt;
+  std::optional<Vector3> pathPosition = position ? std::optional(position.InterpolateVec3(time)) : std::nullopt;
   std::optional<Quaternion> pathRotation =
-      rotation ? std::optional(rotation.InterpolateQuaternion(time, last)) : std::nullopt;
-  std::optional<Vector3> pathScale = scale ? std::optional(scale.InterpolateVec3(time, last)) : std::nullopt;
+      rotation ? std::optional(rotation.InterpolateQuaternion(time)) : std::nullopt;
+  std::optional<Vector3> pathScale = scale ? std::optional(scale.InterpolateVec3(time)) : std::nullopt;
   std::optional<Quaternion> pathLocalRotation =
-      localRotation ? std::optional(localRotation.InterpolateQuaternion(time, last)) : std::nullopt;
-  std::optional<float> pathDissolve = dissolve ? std::optional(dissolve.InterpolateLinear(time, last)) : std::nullopt;
+      localRotation ? std::optional(localRotation.InterpolateQuaternion(time)) : std::nullopt;
+  std::optional<float> pathDissolve = dissolve ? std::optional(dissolve.InterpolateLinear(time)) : std::nullopt;
   std::optional<float> pathDissolveArrow =
-      dissolveArrow ? std::optional(dissolveArrow.InterpolateLinear(time, last)) : std::nullopt;
-  std::optional<float> pathCuttable = cuttable ? std::optional(cuttable.InterpolateLinear(time, last)) : std::nullopt;
+      dissolveArrow ? std::optional(dissolveArrow.InterpolateLinear(time)) : std::nullopt;
+  std::optional<float> pathCuttable = cuttable ? std::optional(cuttable.InterpolateLinear(time)) : std::nullopt;
 
   if (!tracks.empty()) {
     if (tracks.size() == 1) {
@@ -141,21 +139,21 @@ ObjectOffset AnimationHelper::GetObjectOffset(AnimationObjectData const& animati
 
       // Macros to simplify getter code
       if (!pathPosition)
-        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time, last);
+        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
       if (!pathRotation)
-        pathRotation = track.GetPathPropertyNamed(PropertyNames::Rotation).InterpolateQuat(time, last);
-      if (!pathScale) pathScale = track.GetPathPropertyNamed(PropertyNames::Scale).InterpolateVec3(time, last);
+        pathRotation = track.GetPathPropertyNamed(PropertyNames::Rotation).InterpolateQuat(time);
+      if (!pathScale) pathScale = track.GetPathPropertyNamed(PropertyNames::Scale).InterpolateVec3(time);
       if (!pathLocalRotation)
         pathLocalRotation =
-            track.GetPathPropertyNamed(PropertyNames::LocalRotation).InterpolateQuat(time, last);
+            track.GetPathPropertyNamed(PropertyNames::LocalRotation).InterpolateQuat(time);
 
       if (!pathDissolve)
-        pathDissolve = track.GetPathPropertyNamed(PropertyNames::Dissolve).InterpolateLinear(time, last);
+        pathDissolve = track.GetPathPropertyNamed(PropertyNames::Dissolve).InterpolateLinear(time);
       if (!pathDissolveArrow)
         pathDissolveArrow =
-            track.GetPathPropertyNamed(PropertyNames::DissolveArrow).InterpolateLinear(time, last);
+            track.GetPathPropertyNamed(PropertyNames::DissolveArrow).InterpolateLinear(time);
       if (!pathCuttable)
-        pathCuttable = track.GetPathPropertyNamed(PropertyNames::Cuttable).InterpolateLinear(time, last);
+        pathCuttable = track.GetPathPropertyNamed(PropertyNames::Cuttable).InterpolateLinear(time);
 
       // Combine with track properties
       offset.positionOffset = pathPosition + track.GetPropertyNamed(PropertyNames::Position).GetVec3();
