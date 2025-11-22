@@ -119,8 +119,6 @@ MAKE_HOOK_MATCH(NoteJump_ManualUpdate, &NoteJump::ManualUpdate, Vector3, NoteJum
   bool definitePosition = false;
 
   if (noteUpdateAD) {
-    auto& noteBeatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
-
     std::optional<NEVector::Vector3> position =
         AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, normalTime);
     if (position.has_value()) {
