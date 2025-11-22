@@ -11,6 +11,7 @@
 #include "GlobalNamespace/ParametricBoxFrameController.hpp"
 #include "GlobalNamespace/SimpleColorSO.hpp"
 #include "GlobalNamespace/StretchableObstacle.hpp"
+#include "GlobalNamespace/StaticBeatmapObjectSpawnMovementData.hpp"
 #include "UnityEngine/Color.hpp"
 #include "UnityEngine/GameObject.hpp"
 #include "UnityEngine/Renderer.hpp"
@@ -159,34 +160,36 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   ad.internalScale = scale;
   transform->set_localScale(scale);
 
-  auto const& scale2 = ad.objectData.scale;
 
-  if (scale2) {
-    if (scale2->at(0)) {
-      self->_width = *scale2->at(0) * /*NoteLinesWidth*/ 0.6f;
+
+  // Store start/mid/end positions similar to C# LATEST behavior. Use the spawnData moveOffset
+  // as the internal start position so position offsets are applied relative to the spawn offset.
+  ad.moveStartPos = obstacleSpawnData->moveOffset;
+  // ad.moveEndPos = self->_midPos;
+  // ad.jumpEndPos = self->_endPos;
+  ad.localRotation = ad.objectData.localRotation.value_or(NEVector::Quaternion::identity());
+
+  auto const& noodleScale = ad.objectData.scale;
+
+  if (noodleScale) {
+    if (noodleScale->at(0)) {
+      self->_width = *noodleScale->at(0) * StaticBeatmapObjectSpawnMovementData::kNoteLinesDistance;
     }
 
-    if (scale2->at(2)) {
-      self->_length = *scale2->at(2) * /*NoteLinesDistace*/ 0.6f;
+    if (noodleScale->at(2)) {
+      self->_length = *noodleScale->at(2) * StaticBeatmapObjectSpawnMovementData::kNoteLinesDistance;
     }
   }
 
-  ad.moveStartPos = self->_startPos;
-  ad.moveEndPos = self->_midPos;
-  ad.jumpEndPos = self->_endPos;
-  ad.localRotation = ad.objectData.localRotation.value_or(NEVector::Quaternion::identity());
-
-  Vector3 noteOffset = ad.jumpEndPos;
+  // Note offset is jumpEndPosition + spawn move offset (z removed), matching C# LATEST
+  Vector3 noteOffset = NEVector::Vector3(self->_variableMovementDataProvider->jumpEndPosition) + obstacleSpawnData->moveOffset;
   noteOffset.z = 0;
   ad.noteOffset = noteOffset;
 
   self->_stretchableObstacle->SetAllProperties(self->width * 0.98f, self->height, self->length,
                                               self->_stretchableObstacle->_obstacleFrame->color, self->_audioTimeSyncController->songTime);
   self->_bounds = self->_stretchableObstacle->bounds;
-
   setBounds();
-
-  
 
   NEVector::Quaternion localRotation = NEVector::Quaternion::identity();
   auto const& localrot = ad.objectData.localRotation;
@@ -417,11 +420,8 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
   // do transpile only if needed
 
   auto animatedTimeAdjusted = obstacleTimeAdjust(self, elapsedTime, tracks);
-  if (animatedTimeAdjusted != elapsedTime) {
-    return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
-  } else {
-    return ObstacleController_ManualUpdate(self);
-  }
+
+  return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
 }
 
 MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosForTime, Vector3, ObstacleController* self,
@@ -475,6 +475,26 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
   }
 }
 
+MAKE_HOOK_MATCH(ObstacleController_GetObstacleLength, &ObstacleController::GetObstacleLength, float, ObstacleController* self) {
+  if (!Hooks::isNoodleHookEnabled()) return ObstacleController_GetObstacleLength(self);
+
+  static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
+
+  if (self->obstacleData->klass != CustomKlass) return ObstacleController_GetObstacleLength(self);
+
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  if (!obstacleData->customData->value) return ObstacleController_GetObstacleLength(self);
+
+  BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);
+  auto const& scaleOpt = ad.objectData.scale;
+
+  if (scaleOpt && scaleOpt->at(2)) {
+    return *scaleOpt->at(2) * GlobalNamespace::StaticBeatmapObjectSpawnMovementData::kNoteLinesDistance;
+  }
+
+  return ObstacleController_GetObstacleLength(self);
+}
+
 MAKE_HOOK_MATCH(ParametricBoxFakeGlowController_OnEnable, &ParametricBoxFakeGlowController::OnEnable, void,
                 ParametricBoxFakeGlowController* self) {
   if (Hooks::isNoodleHookEnabled()) return;
@@ -510,6 +530,7 @@ void InstallObstacleControllerHooks() {
   INSTALL_HOOK(NELogger::Logger, ObstacleController_Init);
   INSTALL_HOOK_ORIG(NELogger::Logger, ObstacleController_ManualUpdate);
   INSTALL_HOOK(NELogger::Logger, ObstacleController_GetPosForTime);
+  INSTALL_HOOK(NELogger::Logger, ObstacleController_GetObstacleLength);
 
   // Fixes glow being too large on small walls.
   INSTALL_HOOK(NELogger::Logger, ParametricBoxFakeGlowController_Refresh);
