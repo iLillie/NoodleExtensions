@@ -17,10 +17,12 @@ NoodleExtensions::NoodleMovementDataProvider* NoodleExtensions::NoodleMovementDa
   moveStartPositionOverride = std::nullopt;
   moveEndPositionOverride = std::nullopt;
   jumpEndPositionOverride = std::nullopt;
-
+  
   static auto* customObstacleDataClass = classof(CustomJSONData::CustomObstacleData*);
   static auto* customNoteDataClass = classof(CustomJSONData::CustomNoteData*);
   static auto* customSliderDataClass = classof(CustomJSONData::CustomSliderData*);
+
+  if (!beatmapObjectData) return this;
 
   CustomJSONData::JSONWrapper* customDataWrapper = nullptr;
   if (beatmapObjectData->klass == customObstacleDataClass) {

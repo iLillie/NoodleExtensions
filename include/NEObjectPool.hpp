@@ -10,33 +10,35 @@
 namespace NoodleExtensions::Pool {
 
 class NoodleMovementDataProviderPool {
- private:
-  std::vector<SafePtr<NoodleMovementDataProvider>> free = {};
+private:
+  std::deque<SafePtr<NoodleMovementDataProvider>> free = {};
 
- public:
+public:
   NoodleMovementDataProviderPool(int count) : free() {
     for (int i = 0; i < count; ++i) {
       put(NoodleMovementDataProvider::New_ctor());
     }
   }
-  ~NoodleMovementDataProviderPool() {
-    free.clear();
-  }
 
-  NoodleMovementDataProvider* get(GlobalNamespace::BeatmapObjectData* beatmapObjectData) {
-    if (free.empty())
-    {
-      auto obj = NoodleMovementDataProvider::New_ctor()->InitObject(beatmapObjectData);
+  SafePtr<NoodleMovementDataProvider> get(GlobalNamespace::BeatmapObjectData* beatmapObjectData) {
+    if (free.empty()) {
+      auto obj = SafePtr(NoodleMovementDataProvider::New_ctor());
+      obj->InitObject(beatmapObjectData);
       put(obj);
       return obj;
     }
 
-    NoodleMovementDataProvider* obj = free.end()->ptr();
+    SafePtr<NoodleMovementDataProvider> obj = free.back();
     free.pop_back();
-    return obj->InitObject(beatmapObjectData);
+    obj->InitObject(beatmapObjectData);
+    return obj;
   }
 
-  inline void put(NoodleMovementDataProvider* obj) { free.emplace_back(obj); }
+  void put(SafePtr<NoodleMovementDataProvider> obj) {
+    // reset variables here if needed
+    obj->InitObject(nullptr);
+    free.emplace_back(obj);
+  }
 };
 
-}
+} // namespace NoodleExtensions::Pool
