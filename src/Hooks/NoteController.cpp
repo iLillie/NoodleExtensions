@@ -41,7 +41,8 @@ using namespace UnityEngine;
 using namespace TrackParenting;
 
 BeatmapObjectAssociatedData* noteUpdateAD = nullptr;
-TracksAD::TracksVector noteTracks;
+TracksAD::TracksVector noteTrackKeys;
+
 std::unordered_map<std::string_view, std::unordered_set<NoteController*>> linkedNotes;
 std::unordered_map<NoteController*, std::unordered_set<NoteController*>*> linkedLinkedNotes;
 
@@ -49,7 +50,6 @@ CutoutEffect* NECaches::GetCutout(GlobalNamespace::NoteControllerBase* nc, NECac
   CutoutEffect*& cutoutEffect = noteCache.cutoutEffect;
 
   if (cutoutEffect) return cutoutEffect;
-
 
   noteCache.baseNoteVisuals = noteCache.baseNoteVisuals ?: nc->get_gameObject()->GetComponent<BaseNoteVisuals*>();
   CutoutAnimateEffect* cutoutAnimateEffect = noteCache.baseNoteVisuals->_cutoutAnimateEffect;
@@ -87,10 +87,12 @@ NECaches::GetDisappearingArrowController(GlobalNamespace::MirroredGameNoteContro
   return disappearingArrowController;
 }
 
-float noteTimeAdjust(float original, float jumpDuration) {
-  if (noteTracks.empty()) return original;
+float noteTimeAdjust(float original, float jumpDuration, TracksAD::BeatmapAssociatedData& noteBeatmapAD) {
+  if (noteTrackKeys.empty()) return original;
 
-  auto time = NoodleExtensions::getTimeProp(noteTracks);
+  auto tracks = noteBeatmapAD.getTracks(noteTrackKeys);
+
+  auto time = NoodleExtensions::getTimeProp(tracks);
 
   if (time) {
     return *time * jumpDuration;
@@ -102,13 +104,13 @@ float noteTimeAdjust(float original, float jumpDuration) {
 void NECaches::ClearNoteCaches() {
   NECaches::noteCache.clear();
   noteUpdateAD = nullptr;
-  noteTracks.clear();
+  noteTrackKeys.clear();
   linkedNotes.clear();
   linkedLinkedNotes.clear();
 }
 
 MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController* self,
-                GlobalNamespace::NoteData* noteData, ByRef<GlobalNamespace::NoteSpawnData> noteSpawnData, 
+                GlobalNamespace::NoteData* noteData, ByRef<GlobalNamespace::NoteSpawnData> noteSpawnData,
                 float_t endRotation, float_t uniformScale, bool rotateTowardsPlayer, bool useRandomRotation) {
   NoteController_Init(self, noteData, noteSpawnData, endRotation, uniformScale, rotateTowardsPlayer, useRandomRotation);
 
@@ -127,7 +129,7 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   if (!customNoteData->customData) return;
   BeatmapObjectAssociatedData& ad = getAD(customNoteData->customData);
 
-  if(!ad.parsed) return;
+  if (!ad.parsed) return;
 
   auto link = ad.objectData.link;
   if (link) {
@@ -181,7 +183,10 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
       transform->set_localRotation(NEVector::Quaternion(transform->get_localRotation()) * localRotation);
     }
   }
-  auto const& tracks = TracksAD::getAD(customNoteData->customData).tracks;
+  auto const& trackKeys = TracksAD::getAD(customNoteData->customData).tracks;
+  auto& beatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+  auto tracks = beatmapAD.getTracks(trackKeys);
+
   if (!tracks.empty()) {
     auto go = self->get_gameObject();
     for (auto& track : tracks) {
@@ -204,7 +209,8 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   ad.localRotation = localRotation;
 
   float startVerticalVelocity = jumpGravity * halfJumpDuration;
-  float yOffset = (startVerticalVelocity * halfJumpDuration) - (jumpGravity * halfJumpDuration * halfJumpDuration * 0.5f);
+  float yOffset =
+      (startVerticalVelocity * halfJumpDuration) - (jumpGravity * halfJumpDuration * halfJumpDuration * 0.5f);
   ad.noteOffset = Vector3(jumpEndPos.x, jumpEndPos.y + yOffset, 0);
 
   self->Update();
@@ -215,7 +221,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   if (!Hooks::isNoodleHookEnabled()) return NoteController_ManualUpdate(self);
 
   noteUpdateAD = nullptr;
-  noteTracks.clear();
+  noteTrackKeys.clear();
 
   static auto CustomKlass = classof(CustomJSONData::CustomNoteData*);
 
@@ -224,7 +230,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   auto* customNoteData = reinterpret_cast<CustomJSONData::CustomNoteData*>(self->noteData);
   if (!customNoteData->customData) {
     noteUpdateAD = nullptr;
-    noteTracks.clear();
+    noteTrackKeys.clear();
     return NoteController_ManualUpdate(self);
   }
 
@@ -235,18 +241,20 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   // }
 
   BeatmapObjectAssociatedData& ad = getAD(customNoteData->customData);
-  auto const& tracks = TracksAD::getAD(customNoteData->customData).tracks;
+  auto const& trackKeys = TracksAD::getAD(customNoteData->customData).tracks;
 
   noteUpdateAD = &ad;
-  noteTracks = tracks;
-
-  if (noteTracks.empty() && !ad.animationData.parsed) {
+  noteTrackKeys = trackKeys;
+  auto& noteBeatmapAD = TracksAD::getBeatmapAD(customNoteData->customData);
+  if (noteTrackKeys.empty() && !ad.animationData.parsed) {
     return NoteController_ManualUpdate(self);
   }
 
   NoteJump* noteJump = self->_noteMovement->_jump;
   NoteFloorMovement* floorMovement = self->_noteMovement->_floorMovement;
   IVariableMovementDataProvider* variableMovementDataProvider = self->_noteMovement->_variableMovementDataProvider;
+
+  auto tracks = noteBeatmapAD.getTracks(noteTrackKeys);
 
   auto time = NoodleExtensions::getTimeProp(tracks);
   float normalTime;
@@ -310,7 +318,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
     ArrayW<ConditionalMaterialSwitcher*> materialSwitchers = noteCache.conditionalMaterialSwitchers;
     for (auto* materialSwitcher : materialSwitchers) {
       materialSwitcher->_renderer->set_sharedMaterial(isDissolving ? materialSwitcher->_material1
-                                                                  : materialSwitcher->_material0);
+                                                                   : materialSwitcher->_material0);
     }
     noteCache.dissolveEnabled = isDissolving;
   }
@@ -375,7 +383,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   // NoteController.ManualUpdate. To make sure it doesn't interfere with future notes, it's set
   // back to null
   noteUpdateAD = nullptr;
-  noteTracks.clear();
+  noteTrackKeys.clear();
 }
 
 MAKE_HOOK_MATCH(NoteController_SendNoteWasCutEvent_LinkedNotes, &NoteController::SendNoteWasCutEvent, void,

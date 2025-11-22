@@ -15,16 +15,18 @@ using namespace UnityEngine;
 using namespace System;
 
 extern BeatmapObjectAssociatedData* noteUpdateAD;
-extern TracksAD::TracksVector noteTracks;
+extern TracksAD::TracksVector noteTrackKeys;
 
 static NEVector::Vector3 DefinitePositionTranspile(NEVector::Vector3 original, NoteFloorMovement* noteFloorMovement) {
   if (!noteUpdateAD) {
     return original;
   }
 
-  // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  auto& beatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+  auto tracks = beatmapAD.getTracks(noteTrackKeys);
+
   std::optional<NEVector::Vector3> position =
-      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, 0);
+      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, tracks, 0);
   if (!position.has_value()) {
     return original;
   }
@@ -36,10 +38,14 @@ static NEVector::Vector3 DefinitePositionTranspile(NEVector::Vector3 original, N
 
 MAKE_HOOK_MATCH(NoteFloorMovement_ManualUpdate, &NoteFloorMovement::ManualUpdate, Vector3, NoteFloorMovement* self) {
   if (!Hooks::isNoodleHookEnabled()) return NoteFloorMovement_ManualUpdate(self);
-  float num = TimeSourceHelper::getSongTime(self->_audioTimeSyncController) - (self->_beatTime - self->_variableMovementDataProvider->moveDuration - self->_variableMovementDataProvider->halfJumpDuration);
+  float num = TimeSourceHelper::getSongTime(self->_audioTimeSyncController) -
+              (self->_beatTime - self->_variableMovementDataProvider->moveDuration -
+               self->_variableMovementDataProvider->halfJumpDuration);
 
-  self->_localPosition = NEVector::Vector3::Lerp(NEVector::Vector3(self->_variableMovementDataProvider->moveStartPosition) + self->_moveStartOffset, NEVector::Vector3(self->_variableMovementDataProvider->moveEndPosition) + self->_moveEndOffset,
-                                                 num / self->_variableMovementDataProvider->moveDuration);
+  self->_localPosition = NEVector::Vector3::Lerp(
+      NEVector::Vector3(self->_variableMovementDataProvider->moveStartPosition) + self->_moveStartOffset,
+      NEVector::Vector3(self->_variableMovementDataProvider->moveEndPosition) + self->_moveEndOffset,
+      num / self->_variableMovementDataProvider->moveDuration);
   self->_localPosition = DefinitePositionTranspile(self->_localPosition, self);
 
   NEVector::Vector3 vector = NEVector::Quaternion(self->_worldRotation) * NEVector::Vector3(self->_localPosition);

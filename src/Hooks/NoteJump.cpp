@@ -16,7 +16,7 @@ using namespace GlobalNamespace;
 using namespace UnityEngine;
 
 extern BeatmapObjectAssociatedData* noteUpdateAD;
-extern TracksAD::TracksVector noteTracks;
+extern TracksAD::TracksVector noteTrackKeys;
 
 float noteTimeAdjust(float original, float jumpDuration);
 
@@ -102,8 +102,7 @@ MAKE_HOOK_MATCH(NoteJump_ManualUpdate, &NoteJump::ManualUpdate, Vector3, NoteJum
   if (self->_startPos.x == self->_endPos.x) {
     self->_localPosition.x = self->_startPos.x;
   } else if (normalTime < 0.25f) {
-    self->_localPosition.x =
-        self->_startPos.x + (self->_endPos.x - self->_startPos.x) * InOutQuad(normalTime * 4.f);
+    self->_localPosition.x = self->_startPos.x + (self->_endPos.x - self->_startPos.x) * InOutQuad(normalTime * 4.f);
   } else {
     self->_localPosition.x = self->_endPos.x;
   }
@@ -120,6 +119,9 @@ MAKE_HOOK_MATCH(NoteJump_ManualUpdate, &NoteJump::ManualUpdate, Vector3, NoteJum
   bool definitePosition = false;
 
   if (noteUpdateAD) {
+    auto& noteBeatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+    auto noteTracks = noteBeatmapAD.getTracks(noteTrackKeys);
+    
     std::optional<NEVector::Vector3> position =
         AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, normalTime);
     if (position.has_value()) {

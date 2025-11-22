@@ -195,7 +195,10 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   ad.localRotation = localRotation;
 
 
-  auto const& tracks = TracksAD::getAD(obstacleData->customData).tracks;
+  auto const& trackKeys = TracksAD::getAD(obstacleData->customData).tracks;
+  auto& beatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+  auto tracks = beatmapAD.getTracks(trackKeys);
+
   if (!tracks.empty()) {
     auto go = self->get_gameObject();
     for (auto& track : tracks) {
@@ -278,7 +281,9 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     return;
   }
 
-  auto const& tracks = TracksAD::getAD(obstacleData->customData).tracks;
+  auto const& trackKeys = TracksAD::getAD(obstacleData->customData).tracks;
+  auto& beatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+  auto tracks = beatmapAD.getTracks(trackKeys);
 
   if (tracks.empty() && !ad.parsed) {
     ObstacleController_ManualUpdate(self);
@@ -442,7 +447,9 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
   }
   BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);
 
-  auto const& tracks = TracksAD::getAD(obstacleData->customData).tracks;
+  auto const& trackKeys = TracksAD::getAD(obstacleData->customData).tracks;
+  auto& beatmapAD = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData);
+  auto tracks = beatmapAD.getTracks(trackKeys);
 
   float moveDuration = self->_variableMovementDataProvider->moveDuration;
   float jumpDuration = self->_variableMovementDataProvider->jumpDuration;
@@ -452,6 +459,7 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
   jumpTime = std::clamp(jumpTime, 0.0f, 1.0f);
 
   // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  
   std::optional<NEVector::Vector3> position =
       AnimationHelper::GetDefinitePositionOffset(ad.animationData, tracks, jumpTime);
 
