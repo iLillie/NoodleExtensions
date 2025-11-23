@@ -1,5 +1,6 @@
 #include "GlobalNamespace/BeatmapCallbacksController.hpp"
 #include "GlobalNamespace/BeatmapObjectSpawnController.hpp"
+#include "GlobalNamespace/StaticBeatmapObjectSpawnMovementData.hpp"
 #include "GlobalNamespace/BeatmapObjectSpawnMovementData.hpp"
 #include "custom-json-data/shared/CustomBeatmapData.h"
 #include "tracks/shared/Animation/PointDefinition.h"
@@ -21,39 +22,38 @@ extern BeatmapCallbacksController* callbackController;
 extern BeatmapObjectSpawnController* spawnController;
 
 constexpr std::optional<Vector3> operator+(std::optional<Vector3> const& a, std::optional<Vector3> const& b) {
-  if (!a && !b) {
-    return std::nullopt;
+  if (a && b) {
+    return *a + *b;
   }
-
-  Vector3 total = Vector3::zero();
   if (a) {
-    total = total + *a;
+    return a;
   }
 
   if (b) {
-    total = total + *b;
+    return b;
   }
 
-  return total;
+  return std::nullopt;
 }
 
 template <typename T> constexpr std::optional<T> operator*(std::optional<T> const& a, std::optional<T> const& b) {
   if (a && b) {
     return *a * *b;
-  } else if (a) {
-    return a;
-  } else if (b) {
-    return b;
-  } else {
-    return std::nullopt;
   }
+  if (a) {
+    return a;
+  }
+  if (b) {
+    return b;
+  } 
+    return std::nullopt;
+  
 }
 
 std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(AnimationObjectData const& animationData,
                                                                             std::span<TrackW const> tracks,
                                                                             float time) {
   PointDefinitionW localDefinitePosition = animationData.definitePosition;
-
 
   std::optional<Vector3> pathDefinitePosition =
       localDefinitePosition ? std::optional(localDefinitePosition.InterpolateVec3(time)) : std::nullopt;
@@ -62,8 +62,7 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
   if (!pathDefinitePosition && !tracks.empty()) {
     if (tracks.size() == 1) {
       auto track = tracks.front();
-      pathDefinitePosition =
-          track.GetPathPropertyNamed(PropertyNames::DefinitePosition).InterpolateVec3(time);
+      pathDefinitePosition = track.GetPathPropertyNamed(PropertyNames::DefinitePosition).InterpolateVec3(time);
     } else {
       auto positions = Animation::getPathPropertiesVec3(tracks, PropertyNames::DefinitePosition, time);
       pathDefinitePosition = Animation::addVector3s(positions);
@@ -82,16 +81,14 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
     if (tracks.size() == 1) {
       auto track = tracks.front();
 
-      if (!pathPosition)
-        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
+      if (!pathPosition) pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
 
       trackPosition = track.GetPropertyNamed(PropertyNames::Position).GetVec3();
     } else {
-      trackPosition = Animation::addVector3s(Animation::getPropertiesVec3(tracks, PropertyNames::Position, {}));
+      trackPosition = Animation::addVector3s(Animation::getPropertiesVec3(tracks, PropertyNames::Position, TimeUnit()));
 
       if (!pathPosition)
-        pathPosition =
-            Animation::addVector3s(Animation::getPathPropertiesVec3(tracks, PropertyNames::Position, time));
+        pathPosition = Animation::addVector3s(Animation::getPathPropertiesVec3(tracks, PropertyNames::Position, time));
     }
 
     positionOffset = pathPosition + trackPosition;
@@ -100,7 +97,11 @@ std::optional<NEVector::Vector3> AnimationHelper::GetDefinitePositionOffset(Anim
   }
 
   std::optional<Vector3> definitePosition = positionOffset + pathDefinitePosition;
-  if (definitePosition) definitePosition = definitePosition.value() * NECaches::get_noteLinesDistanceFast();
+
+  if (definitePosition) {
+    definitePosition =
+        definitePosition.value() * GlobalNamespace::StaticBeatmapObjectSpawnMovementData::kNoteLinesDistance;
+  }
 
   if (NECaches::LeftHandedMode) {
     definitePosition = Animation::MirrorVectorNullable(definitePosition);
@@ -138,22 +139,16 @@ ObjectOffset AnimationHelper::GetObjectOffset(AnimationObjectData const& animati
       auto const track = tracks.front();
 
       // Macros to simplify getter code
-      if (!pathPosition)
-        pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
-      if (!pathRotation)
-        pathRotation = track.GetPathPropertyNamed(PropertyNames::Rotation).InterpolateQuat(time);
+      if (!pathPosition) pathPosition = track.GetPathPropertyNamed(PropertyNames::Position).InterpolateVec3(time);
+      if (!pathRotation) pathRotation = track.GetPathPropertyNamed(PropertyNames::Rotation).InterpolateQuat(time);
       if (!pathScale) pathScale = track.GetPathPropertyNamed(PropertyNames::Scale).InterpolateVec3(time);
       if (!pathLocalRotation)
-        pathLocalRotation =
-            track.GetPathPropertyNamed(PropertyNames::LocalRotation).InterpolateQuat(time);
+        pathLocalRotation = track.GetPathPropertyNamed(PropertyNames::LocalRotation).InterpolateQuat(time);
 
-      if (!pathDissolve)
-        pathDissolve = track.GetPathPropertyNamed(PropertyNames::Dissolve).InterpolateLinear(time);
+      if (!pathDissolve) pathDissolve = track.GetPathPropertyNamed(PropertyNames::Dissolve).InterpolateLinear(time);
       if (!pathDissolveArrow)
-        pathDissolveArrow =
-            track.GetPathPropertyNamed(PropertyNames::DissolveArrow).InterpolateLinear(time);
-      if (!pathCuttable)
-        pathCuttable = track.GetPathPropertyNamed(PropertyNames::Cuttable).InterpolateLinear(time);
+        pathDissolveArrow = track.GetPathPropertyNamed(PropertyNames::DissolveArrow).InterpolateLinear(time);
+      if (!pathCuttable) pathCuttable = track.GetPathPropertyNamed(PropertyNames::Cuttable).InterpolateLinear(time);
 
       // Combine with track properties
       offset.positionOffset = pathPosition + track.GetPropertyNamed(PropertyNames::Position).GetVec3();
@@ -186,8 +181,7 @@ ObjectOffset AnimationHelper::GetObjectOffset(AnimationObjectData const& animati
         pathDissolve = Animation::multiplyFloats(dissolvePaths);
       }
       if (!pathDissolveArrow) {
-        auto dissolveArrowPaths =
-            Animation::getPathPropertiesFloat(tracks, PropertyNames::DissolveArrow, time);
+        auto dissolveArrowPaths = Animation::getPathPropertiesFloat(tracks, PropertyNames::DissolveArrow, time);
         pathDissolveArrow = Animation::multiplyFloats(dissolveArrowPaths);
       }
       if (!pathCuttable) {
