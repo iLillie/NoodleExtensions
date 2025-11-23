@@ -6,6 +6,7 @@
 
 #include "GlobalNamespace/BeatmapObjectSpawnController.hpp"
 #include "GlobalNamespace/NoteLineLayer.hpp"
+#include "GlobalNamespace/StaticBeatmapObjectSpawnMovementData.hpp"
 #include "NELogger.h"
 #include "SpawnDataHelper.h"
 
@@ -56,8 +57,7 @@ constexpr float OneBeatDuration(float bpm) {
   return 60.0f / bpm;
 }
 
-constexpr float GetJumpDuration(std::optional<float> inputNjs,
-                                std::optional<float> inputOffset) {
+constexpr float GetJumpDuration(std::optional<float> inputNjs, std::optional<float> inputOffset) {
 
   if (!inputNjs && !inputOffset) {
     return NECaches::VariableMovementDataProvider->get_jumpDuration();
@@ -74,16 +74,13 @@ constexpr float GetJumpDuration(std::optional<float> inputNjs,
 
   float oneBeatDuration = OneBeatDuration(NECaches::InitData->beatsPerMinute);
   float halfJumpDurationInBeats =
-      CalculateHalfJumpDurationInBeats(movementData->_startHalfJumpDurationInBeats, 
-                                       movementData->_maxHalfJumpDistance,
-                                       njs, oneBeatDuration,
-                                       spawnOffset);
+      CalculateHalfJumpDurationInBeats(movementData->_startHalfJumpDurationInBeats, movementData->_maxHalfJumpDistance,
+                                       njs, oneBeatDuration, spawnOffset);
 
   return oneBeatDuration * halfJumpDurationInBeats * 2.0f;
 }
 
-inline float GetSpawnAheadTime(std::optional<float> inputNjs,
-                               std::optional<float> inputOffset) {
+inline float GetSpawnAheadTime(std::optional<float> inputNjs, std::optional<float> inputOffset) {
   float moveDuration = GlobalNamespace::VariableMovementDataProvider::kMoveDuration;
   return moveDuration + (GetJumpDuration(inputNjs, inputOffset) * 0.5f);
 }
@@ -96,19 +93,20 @@ float LineYPosForLineLayer(float height);
 
 constexpr NEVector::Vector2 Get2DNoteOffset(float lineIndex, int noteLinesCount, float lineLayer) {
   float distance = -(float(noteLinesCount) - 1.0f) * 0.5f;
-  return { (distance + lineIndex) * NECaches::get_noteLinesDistanceFast(), LineYPosForLineLayer(lineLayer) };
+  return { (distance + lineIndex) * GlobalNamespace::StaticBeatmapObjectSpawnMovementData::kNoteLinesDistance,
+           LineYPosForLineLayer(lineLayer) };
 }
 
 constexpr NEVector::Vector3 GetNoteOffset(GlobalNamespace::BeatmapObjectSpawnMovementData* spawnMovementData,
                                           float lineIndex, float lineLayer) {
   NEVector::Vector2 coords = Get2DNoteOffset(lineIndex, spawnMovementData->noteLinesCount, lineLayer);
-  return NEVector::Vector3(0, coords.y, 0) + NEVector::Vector3::op_Multiply(spawnMovementData->_rightVec, coords.x);
+  return NEVector::Vector3(0, coords.y, 0) + (NEVector::Vector3(spawnMovementData->_rightVec) * coords.x);
 }
 
 constexpr UnityEngine::Vector3 GetObstacleOffset(GlobalNamespace::BeatmapObjectSpawnMovementData* spawnMovementData,
                                                  float lineIndex, float lineLayer) {
   UnityEngine::Vector3 result = GetNoteOffset(spawnMovementData, lineIndex, lineLayer);
-  result.y += -0.15f;
+  result.y += GlobalNamespace::StaticBeatmapObjectSpawnMovementData::kObstacleVerticalOffset;
   return result;
 }
 
