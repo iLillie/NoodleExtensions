@@ -19,9 +19,8 @@ using namespace UnityEngine;
 using namespace GlobalNamespace;
 using namespace Animation;
 
-template <>
-struct std::hash<std::pair<TrackW, ParentObject*>> {
-  std::size_t operator()(const std::pair<TrackW, ParentObject*>& k) const {
+template <> struct std::hash<std::pair<TrackW, ParentObject*>> {
+  std::size_t operator()(std::pair<TrackW, ParentObject*> const& k) const {
     return std::hash<int>()(k.first.track._0) ^ std::hash<ParentObject*>()(k.second);
   }
 };
@@ -36,8 +35,7 @@ static void RemoveCallback(TrackW track, ParentObject* object) {
   gameObjectModificationCallbacks.erase(pair);
 }
 
-template<typename F>
-static void AddCallback(TrackW track, ParentObject* object, F&& f) {
+template <typename F> static void AddCallback(TrackW track, ParentObject* object, F&& f) {
   auto pair = std::pair(track, object);
   auto callback = track.RegisterGameObjectCallback(std::forward<F>(f));
   gameObjectModificationCallbacks[pair] = callback;
@@ -170,40 +168,37 @@ void ParentObject::AssignTrack(ParentTrackEventData const& parentTrackEventData)
                                    ", "),
                          parentTrackEventData.parentTrack.v2);
 
-  auto startTime = std::chrono::high_resolution_clock::now();
+
   parentTrackEventData.parentTrack.RegisterGameObject(parentGameObject);
 
-  for (auto& track : parentTrackEventData.childrenTracks) {
+  for (auto track : parentTrackEventData.childrenTracks) {
     if (track == parentTrackEventData.parentTrack) {
       NELogger::Logger.error("How could a track contain itself?");
+      continue;
     }
 
-
     for (auto parentObject : ParentController::parentObjects) {
-      // track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, parentObject };
-      // parentObject->childrenTracks.erase(track);
-
       // this code is ugly but whatever, keep the original above as a reference
       if (!parentObject) continue;
-
+      
+      // track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, parentObject };
       RemoveCallback(track, parentObject);
-
-
       parentObject->childrenTracks.erase(track);
     }
 
-    // NELogger::Logger.debug("Reparenting {} from {} to {}", childTrack.GetGameObjects().size(),
-    //                        childTrack.GetName(), parentTrackEventData.parentTrack.GetName());
-    for (auto& gameObject : track.GetGameObjects()) {
+    NELogger::Logger.debug("Reparenting {} from {} to {}", track.GetGameObjects().size(), track.GetName(),
+                           parentTrackEventData.parentTrack.GetName());
+    for (auto gameObject : track.GetGameObjects()) {
       instance->ParentToObject(get_transform(gameObject));
     }
-    // instance->childrenTracks.emplace(track);
-    // track.gameObjectModificationEvent += { &ParentObject::HandleGameObject, instance };
 
     instance->childrenTracks.emplace(track);
-    
+
+    // track.gameObjectModificationEvent += { &ParentObject::HandleGameObject, instance };
     RemoveCallback(track, instance);
-    AddCallback(track, instance, [instance](UnityEngine::GameObject* go, bool added) {
+    AddCallback(track, instance, [instance, track](UnityEngine::GameObject* go, bool added) {
+      NELogger::Logger.debug("ParentObject child {} Track Callback: {} {}", track.GetName(), go->get_name(),
+                             added ? "Added" : "Removed");
       instance->HandleGameObject(instance->track, go, !added);
     });
   }
@@ -251,12 +246,13 @@ void ParentObject::AssignTrack(ParentTrackEventData const& parentTrackEventData)
   }
 }
 
-void ParentObject::ParentToObject(Transform* transform) {
+void ParentObject::ParentToObject(Transform* childTransform) {
   static auto SetParent =
       il2cpp_utils::il2cpp_type_check::FPtrWrapper<static_cast<void (Transform::*)(UnityEngine::Transform*, bool)>(
           &UnityEngine::Transform::SetParent)>::get();
 
-  SetParent(transform, origin, worldPositionStays);
+  childTransform->SetParent(origin, worldPositionStays);
+  // SetParent(childTransform, origin, worldPositionStays);
 }
 
 void ParentObject::ResetTransformParent(Transform* transform) {
