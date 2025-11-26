@@ -159,5 +159,5 @@ void NoodleExtensions::NoodleMovementDataProvider::ctor() {
   // TODO: Check if we need more initialization
   noteJumpValueType = NECaches::InitData->noteJumpValueType;
   noteJumpStartBeatOffset = NECaches::InitData->noteJumpValue;
-  oneBeatDuration = SpawnDataHelper::OneBeatDuration(NECaches::beatsPerMinute);
+  oneBeatDuration = SpawnDataHelper::OneBeatDuration(NECaches::InitData->beatsPerMinute);
 }

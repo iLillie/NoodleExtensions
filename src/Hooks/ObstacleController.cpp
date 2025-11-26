@@ -517,7 +517,7 @@ MAKE_HOOK_MATCH(ParametricBoxFakeGlowController_Refresh, &GlobalNamespace::Param
 // }
 
 void InstallObstacleControllerHooks() {
-  INSTALL_HOOK(NELogger::Logger, ObstacleController_Init);
+  INSTALL_HOOK_ORIG(NELogger::Logger, ObstacleController_Init);
   INSTALL_HOOK_ORIG(NELogger::Logger, ObstacleController_ManualUpdate);
   INSTALL_HOOK(NELogger::Logger, ObstacleController_GetPosForTime);
   INSTALL_HOOK(NELogger::Logger, ObstacleController_GetObstacleLength);
