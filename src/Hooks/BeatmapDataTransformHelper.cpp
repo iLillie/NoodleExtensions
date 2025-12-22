@@ -1,3 +1,4 @@
+#include "Constants.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 
@@ -252,31 +253,41 @@ void HandleFakeObjects(SongCore::CustomJSONData::CustomLevelInfoSaveDataV2*, std
 
   rapidjson::Value const& customData = *beatmap->customData;
 
+  // not ideal to set fieldbut works for now
+
 #define PARSE_ARRAY(key, array, parse)                                                                                 \
   auto key##it = customData.FindMember(#key);                                                                          \
   if (key##it != customData.MemberEnd()) {                                                                             \
     for (auto const& it : key##it->value.GetArray()) {                                                                 \
       auto item = parse(it);                                                                                           \
-      auto& ad = getAD(item->customData);                                                                              \
-      ad.objectData.fake = true;                                                                                       \
-      array->Add(item);                                                                                                \
+      if (!item || !item->customData) continue;                                                                        \
+      item->customData.value().get().GetObject().AddMember(                                                            \
+          rapidjson::StringRef(NoodleExtensions::Constants::INTERNAL_FAKE_NOTE.data()), rapidjson::Value(true).Move(),        \
+          alloc);                                                                                                      \
     }                                                                                                                  \
   }
+
+  // auto& ad = getAD(item->customData);                                                                              \
+   // ad.objectData.fake = true;                                                                                       \
+      array->Add(item);                                                                                                \
 
   basic->_obstaclesCount_k__BackingField = unsafeBeatmap->obstacles->_size;
   basic->_cuttableNotesCount_k__BackingField = unsafeBeatmap->colorNotes->_size;
   basic->_bombsCount_k__BackingField = unsafeBeatmap->bombNotes->_size;
 
+  auto alloc = beatmap->doc->GetAllocator();
+
   // TODO: Reimplement fake objects
-  // PARSE_ARRAY(fakeColorNotes, unsafeBeatmap->colorNotes, Parser::DeserializeColorNote);
-  // PARSE_ARRAY(fakeBombNotes, unsafeBeatmap->bombNotes, Parser::DeserializeBombNote);
-  // PARSE_ARRAY(fakeObstacles, unsafeBeatmap->obstacles, Parser::DeserializeObstacle);
-  // PARSE_ARRAY(fakeBurstSliders, unsafeBeatmap->burstSliders, Parser::DeserializeBurstSlider);
-  // PARSE_ARRAY(fakeSliders, unsafeBeatmap->sliders, Parser::DeserializeSlider);
+  PARSE_ARRAY(fakeColorNotes, unsafeBeatmap->colorNotes, Parser::DeserializeColorNote);
+  PARSE_ARRAY(fakeBombNotes, unsafeBeatmap->bombNotes, Parser::DeserializeBombNote);
+  PARSE_ARRAY(fakeObstacles, unsafeBeatmap->obstacles, Parser::DeserializeObstacle);
+  PARSE_ARRAY(fakeBurstSliders, unsafeBeatmap->burstSliders, Parser::DeserializeBurstSlider);
+  PARSE_ARRAY(fakeSliders, unsafeBeatmap->sliders, Parser::DeserializeSlider);
 }
 
 void InstallBeatmapDataTransformHelperHooks() {
   // Modloader::requireMod("CustomJSONData");
+  SongCore::API::Loading::GetSongsLoadedEvent() += HandleFakeObjects;
   //  RuntimeSongLoader::API::AddBeatmapDataBasicInfoLoadedEvent(HandleFakeObjects);
 
   INSTALL_HOOK(NELogger::Logger, BeatmapDataTransformHelper_CreateTransformedBeatmapData);
