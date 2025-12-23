@@ -195,8 +195,6 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
                                                self->_audioTimeSyncController->songTime);
   self->_bounds = self->_stretchableObstacle->bounds;
   setBounds();
-
-  self->Update();
 }
 
 static void ObstacleController_ManualUpdateTranspile(ObstacleController* self, float const elapsedTime) {
@@ -219,7 +217,7 @@ static void ObstacleController_ManualUpdateTranspile(ObstacleController* self, f
         NEVector::Vector3(self->_variableMovementDataProvider->jumpEndPosition) + self->_obstacleSpawnData.moveOffset;
   }
   // TRANSPILE HERE
-  float num = elapsedTime; // self->_audioTimeSyncController->songTime - self->_startTimeOffset;
+  float num = elapsedTime;
   // TRANSPILE HERE
   NEVector::Vector3 posForTime = self->GetPosForTime(num);
   self->transform->localPosition = NEVector::Quaternion(self->_worldRotation) * posForTime;
@@ -411,13 +409,8 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     cutoutAnimationEffect->SetCutout(dissolve);
   }
 
-  // do transpile only if needed
-  // TODO: Figure out why this transpile doesn't work when time is unchanged
   auto animatedTimeAdjusted = obstacleTimeAdjust(self, elapsedTime, tracks);
-  if (std::abs(obstacleOriginalTime - normalTime) > std::numeric_limits<float>::epsilon()) {
-    return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
-  }
-  return ObstacleController_ManualUpdate(self);
+  return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
 }
 
 MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosForTime, Vector3, ObstacleController* self,
