@@ -416,8 +416,10 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
   // do transpile only if needed
 
   auto animatedTimeAdjusted = obstacleTimeAdjust(self, elapsedTime, tracks);
-
-  return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
+  if (animatedTimeAdjusted != elapsedTime) {
+    return ObstacleController_ManualUpdateTranspile(self, animatedTimeAdjusted);
+  }
+  return ObstacleController_ManualUpdate(self);
 }
 
 MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosForTime, Vector3, ObstacleController* self,

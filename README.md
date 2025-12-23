@@ -89,6 +89,7 @@ A port of the Noodle Extensions mod made originally for the PC version of Beat S
   - [ ] 7:27 Wall text missing letters (Also 1.37)
 - [x] [IGDWUTSWHWHMTC (QueenChief)](https://beatsaver.com/maps/20bc7) (26/11/25)
 - [ ] [Make a Wish](https://beatsaver.com/maps/1a32d) (4/12/25)
+  - [x] Unintentional hyper walls
   - [ ] [Awaiting analysis]
 - [ ] [Midnight Lady](https://beatsaver.com/maps/da60) (4/12/25)
   - [x] 0:46 Saxaphones have certain walls that rotate in opposite directions
