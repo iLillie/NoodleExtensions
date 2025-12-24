@@ -15,7 +15,7 @@ using namespace TrackParenting;
 using namespace CustomJSONData;
 using namespace NoodleExtensions;
 
-MAKE_HOOK_MATCH(
+/*MAKE_HOOK_MATCH(
     MissionLevelScenesTransitionSetupDataSO_Init,
     static_cast<void (::GlobalNamespace::MissionLevelScenesTransitionSetupDataSO::*)(
         ::StringW, ByRef<::GlobalNamespace::BeatmapKey>, ::GlobalNamespace::BeatmapLevel*,
@@ -59,4 +59,4 @@ MAKE_HOOK_MATCH(
 void InstallMissionLevelScenesTransitionSetupDataSOHooks() {
   INSTALL_HOOK(NELogger::Logger, MissionLevelScenesTransitionSetupDataSO_Init);
 }
-NEInstallHooks(InstallMissionLevelScenesTransitionSetupDataSOHooks);
+NEInstallHooks(InstallMissionLevelScenesTransitionSetupDataSOHooks);*/

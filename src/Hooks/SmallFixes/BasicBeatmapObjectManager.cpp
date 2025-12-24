@@ -15,16 +15,12 @@ using namespace UnityEngine;
 SafePtr<System::Collections::Generic::List_1<UnityW<ObstacleController>>>& getActiveObstacles();
 
 MAKE_HOOK_MATCH(BasicBeatmapObjectManager_Init, &BasicBeatmapObjectManager::Init, void, BasicBeatmapObjectManager* self,
-                ::GlobalNamespace::BasicBeatmapObjectManager_InitData* initData, ::System::Random* random,
-                ::GlobalNamespace::VariableMovementDataProvider* variableMovementDataProvider,
-                ::GlobalNamespace::GameNoteController_Pool* basicGameNotePool,
-                ::GlobalNamespace::GameNoteController_Pool* burstSliderHeadGameNotePool,
-                ::GlobalNamespace::BurstSliderGameNoteController_Pool* burstSliderGameNotePool,
-                ::GlobalNamespace::BombNoteController_Pool* bombNotePool,
-                ::GlobalNamespace::ObstacleController_Pool* obstaclePool,
-                ::GlobalNamespace::SliderController_Pool* sliderPools) {
-  BasicBeatmapObjectManager_Init(self, initData, random, variableMovementDataProvider, basicGameNotePool, burstSliderHeadGameNotePool,
-                                 burstSliderGameNotePool, bombNotePool, obstaclePool, sliderPools);
+::GlobalNamespace::BasicBeatmapObjectManager_InitData* initData, ::GlobalNamespace::IRandom* random,
+                                             ::GlobalNamespace::DeterminismConfig* determinismConfig, ::GlobalNamespace::VariableMovementDataProvider* variableMovementDataProvider,
+                                             ::GlobalNamespace::GameNoteController_Pool* basicGameNotePool, ::GlobalNamespace::GameNoteController_Pool* burstSliderHeadGameNotePool,
+                                             ::GlobalNamespace::BurstSliderGameNoteController_Pool* burstSliderGameNotePool, ::GlobalNamespace::BombNoteController_Pool* bombNotePool,
+                                             ::GlobalNamespace::ObstacleController_Pool* obstaclePool, ::GlobalNamespace::SliderController_Pool* sliderPools) {
+  BasicBeatmapObjectManager_Init(self, initData, random, determinismConfig, variableMovementDataProvider, basicGameNotePool, burstSliderHeadGameNotePool, burstSliderGameNotePool, bombNotePool, obstaclePool, sliderPools);
   if (!Hooks::isNoodleHookEnabled()) return;
 
   // This makes sure that the list of obstacles is cleared every time a new BasicBeatmapObjectManager is initialized (on new level load or restart)
