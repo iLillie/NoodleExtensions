@@ -15,7 +15,7 @@ using namespace TrackParenting;
 using namespace CustomJSONData;
 using namespace NoodleExtensions;
 
-/*MAKE_HOOK_MATCH(MultiplayerLevelScenesTransitionSetupDataSO_Init,
+MAKE_HOOK_MATCH(MultiplayerLevelScenesTransitionSetupDataSO_Init,
                 &MultiplayerLevelScenesTransitionSetupDataSO::InitAndSetupScenes, void,
                 MultiplayerLevelScenesTransitionSetupDataSO* self) {
 
@@ -27,7 +27,7 @@ using namespace NoodleExtensions;
 
   // TODO: Fix environment override
   SceneTransitionHelper::Patch(customBeatmapLevel.value(), self->beatmapKey,
-                               self->GetOrLoadMultiplayerEnvironmentInfo(),
+                               self->_environmentInfo,
                                self->gameplayCoreSceneSetupData->playerSpecificSettings);
 
   MultiplayerLevelScenesTransitionSetupDataSO_Init(self);
@@ -37,4 +37,3 @@ void InstallMultiplayerLevelScenesTransitionSetupDataSOHooks() {
   INSTALL_HOOK(NELogger::Logger, MultiplayerLevelScenesTransitionSetupDataSO_Init);
 }
 NEInstallHooks(InstallMultiplayerLevelScenesTransitionSetupDataSOHooks);
-*/

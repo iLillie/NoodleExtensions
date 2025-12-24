@@ -15,32 +15,24 @@ using namespace TrackParenting;
 using namespace CustomJSONData;
 using namespace NoodleExtensions;
 
-/*MAKE_HOOK_MATCH(
+MAKE_HOOK_MATCH(
     MissionLevelScenesTransitionSetupDataSO_Init,
-    static_cast<void (::GlobalNamespace::MissionLevelScenesTransitionSetupDataSO::*)(
-        ::StringW, ByRef<::GlobalNamespace::BeatmapKey>, ::GlobalNamespace::BeatmapLevel*,
-        ::ArrayW<::GlobalNamespace::MissionObjective*, ::Array<::GlobalNamespace::MissionObjective*>*>,
-        ::GlobalNamespace::ColorScheme*, ::GlobalNamespace::GameplayModifiers*,
-        ::GlobalNamespace::PlayerSpecificSettings*, ::GlobalNamespace::EnvironmentsListModel*,
-        ::GlobalNamespace::BeatmapLevelsModel*, ::GlobalNamespace::AudioClipAsyncLoader*,
-        ::GlobalNamespace::SettingsManager*, ::GlobalNamespace::BeatmapDataLoader*, ::StringW)>(
-        &::GlobalNamespace::MissionLevelScenesTransitionSetupDataSO::Init),
-    void, MissionLevelScenesTransitionSetupDataSO* self, ::StringW missionId,
-    ByRef<::GlobalNamespace::BeatmapKey> beatmapKey, ::GlobalNamespace::BeatmapLevel* beatmapLevel,
-    ::ArrayW<::GlobalNamespace::MissionObjective*, ::Array<::GlobalNamespace::MissionObjective*>*> missionObjectives,
-    ::GlobalNamespace::ColorScheme* overrideColorScheme, ::GlobalNamespace::GameplayModifiers* gameplayModifiers,
-    ::GlobalNamespace::PlayerSpecificSettings* playerSpecificSettings,
-    ::GlobalNamespace::EnvironmentsListModel* environmentsListModel,
-    ::GlobalNamespace::BeatmapLevelsModel* beatmapLevelsModel,
-    ::GlobalNamespace::AudioClipAsyncLoader* audioClipAsyncLoader,
-    ::GlobalNamespace::SettingsManager* SettingsManager,
-    ::GlobalNamespace::BeatmapDataLoader* beatmapDataLoader, ::StringW backButtonText) {
+        &::GlobalNamespace::MissionLevelScenesTransitionSetupDataSO::Init,
+        void, MissionLevelScenesTransitionSetupDataSO* self,
+        ::StringW missionId, ::ByRef<::GlobalNamespace::BeatmapKey> beatmapKey, ::GlobalNamespace::BeatmapLevel* beatmapLevel,
+        ::ArrayW<::GlobalNamespace::MissionObjective*, ::Array<::GlobalNamespace::MissionObjective*>*> missionObjectives,
+        ::GlobalNamespace::ColorScheme* playerOverrideColorScheme, bool playerOverrideLightshowColors,
+        ::GlobalNamespace::GameplayModifiers* gameplayModifiers, ::GlobalNamespace::PlayerSpecificSettings* playerSpecificSettings,
+        ::GlobalNamespace::EnvironmentsListModel* environmentsListModel,
+        ::GlobalNamespace::AudioClipAsyncLoader* audioClipAsyncLoader, ::GlobalNamespace::SettingsManager* settingsManager,
+        ::GlobalNamespace::BeatmapDataLoader* beatmapDataLoader, ::StringW backButtonText,
+        ::GlobalNamespace::BeatmapLevelsModel* beatmapLevelsModel, ::GlobalNamespace::IBeatmapLevelData* beatmapLevelData) {
+
   auto customBeatmapLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(beatmapLevel);
   if (!customBeatmapLevel) {
-    MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives,
-                                                 overrideColorScheme, gameplayModifiers, playerSpecificSettings,
-                                                 environmentsListModel, beatmapLevelsModel, audioClipAsyncLoader,
-                                                 SettingsManager, beatmapDataLoader, backButtonText);
+    MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives, playerOverrideColorScheme,
+      playerOverrideLightshowColors, gameplayModifiers, playerSpecificSettings, environmentsListModel, audioClipAsyncLoader,
+      settingsManager, beatmapDataLoader, backButtonText, beatmapLevelsModel, beatmapLevelData);
     return;
   }
 
@@ -50,13 +42,12 @@ using namespace NoodleExtensions;
   // TODO: Fix environment override
   SceneTransitionHelper::Patch(customBeatmapLevel.value(), beatmapKey.heldRef, environmentInfoBySerializedNameSafe, playerSpecificSettings);
 
-  MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives,
-                                               overrideColorScheme, gameplayModifiers, playerSpecificSettings,
-                                               environmentsListModel, beatmapLevelsModel, audioClipAsyncLoader,
-                                               SettingsManager, beatmapDataLoader, backButtonText);
+  MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives, playerOverrideColorScheme,
+     playerOverrideLightshowColors, gameplayModifiers, playerSpecificSettings, environmentsListModel, audioClipAsyncLoader,
+     settingsManager, beatmapDataLoader, backButtonText, beatmapLevelsModel, beatmapLevelData);
 }
 
 void InstallMissionLevelScenesTransitionSetupDataSOHooks() {
   INSTALL_HOOK(NELogger::Logger, MissionLevelScenesTransitionSetupDataSO_Init);
 }
-NEInstallHooks(InstallMissionLevelScenesTransitionSetupDataSOHooks);*/
+NEInstallHooks(InstallMissionLevelScenesTransitionSetupDataSOHooks);
