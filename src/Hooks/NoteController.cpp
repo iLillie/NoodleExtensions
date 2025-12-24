@@ -150,14 +150,14 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   auto& noteCache = NECaches::getNoteCache(self);
 
   // TODO: reimplement material switching
-  // ArrayW<ConditionalMaterialSwitcher*>& materialSwitchers = noteCache.conditionalMaterialSwitchers;
-  // if (!materialSwitchers) {
-  //   materialSwitchers = self->GetComponentsInChildren<ConditionalMaterialSwitcher*>();
-  // }
+  ArrayW<ConditionalMaterialSwitcher*>& materialSwitchers = noteCache.conditionalMaterialSwitchers;
+  if (!materialSwitchers) {
+    materialSwitchers = self->GetComponentsInChildren<ConditionalMaterialSwitcher*>();
+  }
 
-  // for (auto* materialSwitcher : materialSwitchers) {
-  //   materialSwitcher->_renderer->set_sharedMaterial(materialSwitcher->_material0);
-  // }
+  for (auto* materialSwitcher : materialSwitchers) {
+    materialSwitcher->_renderer->set_sharedMaterial(materialSwitcher->_material0);
+  }
   noteCache.dissolveEnabled = false;
 
   NoteJump* noteJump = self->_noteMovement->_jump;
@@ -318,11 +318,11 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   bool isDissolving = offset.dissolve.value_or(0) > 0 || offset.dissolveArrow.value_or(0) > 0;
   if (hasDissolveOffset && noteCache.dissolveEnabled != isDissolving && noteDissolveConfig) {
     // TODO: reimplement material switching
-    // ArrayW<ConditionalMaterialSwitcher*> materialSwitchers = noteCache.conditionalMaterialSwitchers;
-    // for (auto* materialSwitcher : materialSwitchers) {
-    //   materialSwitcher->_renderer->set_sharedMaterial(isDissolving ? materialSwitcher->_material1
-    //                                                                : materialSwitcher->_material0);
-    // }
+    ArrayW<ConditionalMaterialSwitcher*> materialSwitchers = noteCache.conditionalMaterialSwitchers;
+    for (auto* materialSwitcher : materialSwitchers) {
+      materialSwitcher->_renderer->set_sharedMaterial(isDissolving ? materialSwitcher->_material1
+                                                                   : materialSwitcher->_material0);
+    }
     noteCache.dissolveEnabled = isDissolving;
   }
 
