@@ -35,7 +35,7 @@ MAKE_HOOK_MATCH(PlayerTransforms_HeadsetOffsetZ, &PlayerTransforms::Update, void
   if (!Hooks::isNoodleHookEnabled()) return PlayerTransforms_HeadsetOffsetZ(self);
   if (self->_overrideHeadPos) return;
 
-  // Make sure to set _headWorldPos to prevent collissions with walls when player is moved.
+  // Make sure to set _headWorldPos to prevent collision with walls when player is moved.
   if (UnityW<Transform> headTransform = self->_headTransform; headTransform.isAlive()) {
     self->_headWorldPos =  headTransform.ptr()->position;
   }
