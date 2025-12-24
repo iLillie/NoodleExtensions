@@ -261,9 +261,9 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass) return ObstacleController_ManualUpdate(self);
+  if (self->_obstacleData->klass != CustomKlass) return ObstacleController_ManualUpdate(self);
 
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
 
   BeatmapObjectAssociatedData& ad = getAD(obstacleData->customData);
 
@@ -349,8 +349,8 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
 
   //   // TODO: reimplement smarter dissolve enabling based on color alpha and brightness
 
-  // if (obstacleCache.cachedData != self->obstacleData) {
-  //   obstacleCache.cachedData = self->obstacleData;
+  // if (obstacleCache.cachedData != self->_obstacleData) {
+  //   obstacleCache.cachedData = self->_obstacleData;
   //   // Obstacles are pooled. Clear obstacle when initialized if it's not colored or update to its new color (probably
   //   // redundantly)
   //   auto color = Chroma::ObstacleAPI::getObstacleControllerColorSafe(self);
@@ -424,19 +424,19 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
 
   //    static auto CustomObstacleDataKlass = classof(CustomJSONData::CustomObstacleData *);
   //    CRASH_UNLESS(self);
-  //    CRASH_UNLESS(self->obstacleData);
-  //    NELogger::Logger.debug("ObstacleController::GetPosForTime %p", self->obstacleData);
-  //    CRASH_UNLESS(self->obstacleData->klass);
+  //    CRASH_UNLESS(self->_obstacleData);
+  //    NELogger::Logger.debug("ObstacleController::GetPosForTime %p", self->_obstacleData);
+  //    CRASH_UNLESS(self->_obstacleData->klass);
   //    CRASH_UNLESS(CustomObstacleDataKlass);
   //
-  //    if (!self || !self->obstacleData || self->obstacleData->klass != CustomObstacleDataKlass) {
+  //    if (!self || !self->_obstacleData || self->_obstacleData->klass != CustomObstacleDataKlass) {
   //        return ObstacleController_GetPosForTime(self, time);
   //    }
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass || !obstacleData->customData->value) {
+  if (self->_obstacleData->klass != CustomKlass || !obstacleData->customData->value) {
     return ObstacleController_GetPosForTime(self, time);
   }
   BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);
@@ -475,9 +475,9 @@ MAKE_HOOK_MATCH(ObstacleController_GetObstacleLength, &ObstacleController::GetOb
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass) return ObstacleController_GetObstacleLength(self);
+  if (self->_obstacleData->klass != CustomKlass) return ObstacleController_GetObstacleLength(self);
 
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
   if (!obstacleData->customData->value) return ObstacleController_GetObstacleLength(self);
 
   BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);

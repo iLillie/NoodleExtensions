@@ -228,9 +228,9 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
 
   static auto CustomKlass = classof(CustomJSONData::CustomNoteData*);
 
-  if (self->noteData->klass != CustomKlass) return NoteController_ManualUpdate(self);
+  if (self->_noteData->klass != CustomKlass) return NoteController_ManualUpdate(self);
 
-  auto* customNoteData = reinterpret_cast<CustomJSONData::CustomNoteData*>(self->noteData);
+  auto* customNoteData = reinterpret_cast<CustomJSONData::CustomNoteData*>(self->_noteData);
   if (!customNoteData->customData) {
     noteUpdateAD = nullptr;
     noteTracks.clear();
@@ -343,7 +343,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   static auto* bombNoteControllerClass = classof(BombNoteController*);
 
   if (il2cpp_functions::class_is_assignable_from(gameNoteControllerClass, self->klass)) {
-    if (offset.dissolveArrow.has_value() && self->noteData->colorType != ColorType::None) {
+    if (offset.dissolveArrow.has_value() && self->_noteData->colorType != ColorType::None) {
       auto disappearingArrowController = NECaches::GetDisappearingArrowController((GameNoteController*)self, noteCache);
       if (noteDissolveConfig) {
         disappearingArrowController->SetArrowTransparency(*offset.dissolveArrow);
@@ -397,7 +397,7 @@ MAKE_HOOK_MATCH(NoteController_SendNoteWasCutEvent_LinkedNotes, &NoteController:
 
   if (!Hooks::isNoodleHookEnabled()) return;
 
-  auto* customNoteData = il2cpp_utils::try_cast<CustomJSONData::CustomNoteData>(self->noteData).value_or(nullptr);
+  auto* customNoteData = il2cpp_utils::try_cast<CustomJSONData::CustomNoteData>(self->_noteData).value_or(nullptr);
   if (!customNoteData || !customNoteData->customData) {
     return;
   }
@@ -416,7 +416,7 @@ MAKE_HOOK_MATCH(NoteController_SendNoteWasCutEvent_LinkedNotes, &NoteController:
   auto cuts = list | Sombrero::Linq::Functional::Select([&](auto const& noteController) {
                 return std::pair(
                     noteController,
-                    NoteCutInfo(noteController->noteData, noteCutInfo->speedOK, noteCutInfo->directionOK,
+                    NoteCutInfo(noteController->_noteData, noteCutInfo->speedOK, noteCutInfo->directionOK,
                                 noteCutInfo->saberTypeOK, noteCutInfo->wasCutTooSoon, noteCutInfo->saberSpeed,
                                 noteCutInfo->saberDir, noteCutInfo->saberType, noteCutInfo->timeDeviation,
                                 noteCutInfo->cutDirDeviation, noteCutInfo->cutPoint, noteCutInfo->cutNormal,
