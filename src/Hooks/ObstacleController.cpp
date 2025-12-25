@@ -25,7 +25,10 @@
 #include "NEConfig.h"
 #include "NEHooks.h"
 #include "NECaches.h"
+#include "VariableMovementHelper.hpp"
+
 #include "custom-json-data/shared/CustomBeatmapData.h"
+
 #include "tracks/shared/AssociatedData.h"
 #include "tracks/shared/TimeSourceHelper.h"
 
@@ -56,7 +59,9 @@ void NECaches::ClearObstacleCaches() {
 }
 
 float obstacleTimeAdjust(ObstacleController* oc, float original, std::span<TrackW> tracks) {
-  float moveDuration = oc->_variableMovementDataProvider->moveDuration;
+  auto movement = VariableMovementW(oc->_variableMovementDataProvider);
+
+  float moveDuration = movement.moveDuration;
   if (original <= moveDuration) return original;
 
   auto time = NoodleExtensions::getTimeProp(tracks);
@@ -80,6 +85,7 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   transform->set_localScale(NEVector::Vector3::one());
 
   if (!obstacleData->customData) {
+    NELogger::Logger.warn("Obstacle at time {} has no customData", obstacleData->time);
     return;
   }
 
@@ -123,6 +129,7 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   auto const setBounds = [&ad, &self]() constexpr {
     if (ad.objectData.uninteractable.value_or(false)) {
       self->bounds.set_size(NEVector::Vector3::zero());
+      getActiveObstacles()->Remove(self);
     } else {
       getActiveObstacles()->Add(self);
     }
@@ -186,35 +193,30 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   // ad.jumpEndPos = self->_endPos;
 
   // Note offset is jumpEndPosition + spawn move offset (z removed), matching C# LATEST
-  Vector3 noteOffset =
-      NEVector::Vector3(self->_variableMovementDataProvider->jumpEndPosition) + obstacleSpawnData->moveOffset;
+  auto movement = VariableMovementW(self->_variableMovementDataProvider);
+
+  Vector3 noteOffset = NEVector::Vector3(movement.jumpEndPosition) + obstacleSpawnData->moveOffset;
   noteOffset.z = 0;
   ad.noteOffset = noteOffset;
 
   self->_stretchableObstacle->SetAllProperties(self->_width * 0.98f, self->_height, self->_length, self->_color,
-                                               self->_audioTimeSyncController->songTime);
+                                               TimeSourceHelper::getSongTime(self->_audioTimeSyncController));
   self->_bounds = self->_stretchableObstacle->bounds;
   setBounds();
 }
 
 static void ObstacleController_ManualUpdateTranspile(ObstacleController* self, float const elapsedTime) {
 
+  auto movement = VariableMovementW(self->_variableMovementDataProvider);
+
   if (!self->_passedAvoidedMarkReported) {
-    self->_startTimeOffset = self->_obstacleData->time - self->_variableMovementDataProvider->moveDuration -
-                             self->_variableMovementDataProvider->halfJumpDuration;
-    self->_passedThreeQuartersOfJumpDurationTime =
-        self->_variableMovementDataProvider->moveDuration + self->_variableMovementDataProvider->jumpDuration * 0.75f;
-    self->_passedAvoidedMarkTime = self->_variableMovementDataProvider->moveDuration +
-                                   self->_variableMovementDataProvider->halfJumpDuration + self->_obstacleDuration +
-                                   0.15f;
-    self->_finishMovementTime = self->_variableMovementDataProvider->moveDuration +
-                                self->_variableMovementDataProvider->jumpDuration + self->_obstacleDuration;
-    self->_startPos =
-        NEVector::Vector3(self->_variableMovementDataProvider->moveStartPosition) + self->_obstacleSpawnData.moveOffset;
-    self->_midPos =
-        NEVector::Vector3(self->_variableMovementDataProvider->moveEndPosition) + self->_obstacleSpawnData.moveOffset;
-    self->_endPos =
-        NEVector::Vector3(self->_variableMovementDataProvider->jumpEndPosition) + self->_obstacleSpawnData.moveOffset;
+    self->_startTimeOffset = self->_obstacleData->get_time() - movement.moveDuration - movement.halfJumpDuration;
+    self->_passedThreeQuartersOfJumpDurationTime = movement.moveDuration + movement.jumpDuration * 0.75f;
+    self->_passedAvoidedMarkTime = movement.moveDuration + movement.halfJumpDuration + self->_obstacleDuration + 0.15f;
+    self->_finishMovementTime = movement.moveDuration + movement.jumpDuration + self->_obstacleDuration;
+    self->_startPos = NEVector::Vector3(movement.moveStartPosition) + self->_obstacleSpawnData.moveOffset;
+    self->_midPos = NEVector::Vector3(movement.moveEndPosition) + self->_obstacleSpawnData.moveOffset;
+    self->_endPos = NEVector::Vector3(movement.jumpEndPosition) + self->_obstacleSpawnData.moveOffset;
   }
   // TRANSPILE HERE
   float num = elapsedTime;
@@ -222,9 +224,10 @@ static void ObstacleController_ManualUpdateTranspile(ObstacleController* self, f
   NEVector::Vector3 posForTime = self->GetPosForTime(num);
   self->transform->localPosition = NEVector::Quaternion(self->_worldRotation) * posForTime;
   self->_length = self->GetObstacleLength();
-  if (self->_variableMovementDataProvider->wasUpdatedThisFrame) {
+
+  if (movement.wasUpdatedThisFrame) {
     self->_stretchableObstacle->SetSizeAndOffset(self->_width, self->_height, self->_length,
-                                                 self->_audioTimeSyncController->songTime);
+                                                 TimeSourceHelper::getSongTime(self->_audioTimeSyncController));
   }
   auto action = self->didUpdateProgress;
   if (action != nullptr) {
@@ -258,9 +261,9 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass) return ObstacleController_ManualUpdate(self);
+  if (self->_obstacleData->klass != CustomKlass) return ObstacleController_ManualUpdate(self);
 
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
 
   BeatmapObjectAssociatedData& ad = getAD(obstacleData->customData);
 
@@ -280,8 +283,10 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     return;
   }
 
-  float moveDuration = self->_variableMovementDataProvider->moveDuration;
-  float jumpDuration = self->_variableMovementDataProvider->jumpDuration;
+  VariableMovementW movement = VariableMovementW(self->_variableMovementDataProvider);
+
+  float moveDuration = movement.moveDuration;
+  float jumpDuration = movement.jumpDuration;
   float obstacleDuration = self->_obstacleData->duration;
 
   float const songTime = TimeSourceHelper::getSongTime(self->_audioTimeSyncController);
@@ -344,8 +349,8 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
 
   //   // TODO: reimplement smarter dissolve enabling based on color alpha and brightness
 
-  // if (obstacleCache.cachedData != self->obstacleData) {
-  //   obstacleCache.cachedData = self->obstacleData;
+  // if (obstacleCache.cachedData != self->_obstacleData) {
+  //   obstacleCache.cachedData = self->_obstacleData;
   //   // Obstacles are pooled. Clear obstacle when initialized if it's not colored or update to its new color (probably
   //   // redundantly)
   //   auto color = Chroma::ObstacleAPI::getObstacleControllerColorSafe(self);
@@ -419,27 +424,29 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
 
   //    static auto CustomObstacleDataKlass = classof(CustomJSONData::CustomObstacleData *);
   //    CRASH_UNLESS(self);
-  //    CRASH_UNLESS(self->obstacleData);
-  //    NELogger::Logger.debug("ObstacleController::GetPosForTime %p", self->obstacleData);
-  //    CRASH_UNLESS(self->obstacleData->klass);
+  //    CRASH_UNLESS(self->_obstacleData);
+  //    NELogger::Logger.debug("ObstacleController::GetPosForTime %p", self->_obstacleData);
+  //    CRASH_UNLESS(self->_obstacleData->klass);
   //    CRASH_UNLESS(CustomObstacleDataKlass);
   //
-  //    if (!self || !self->obstacleData || self->obstacleData->klass != CustomObstacleDataKlass) {
+  //    if (!self || !self->_obstacleData || self->_obstacleData->klass != CustomObstacleDataKlass) {
   //        return ObstacleController_GetPosForTime(self, time);
   //    }
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass || !obstacleData->customData->value) {
+  if (self->_obstacleData->klass != CustomKlass || !obstacleData->customData->value) {
     return ObstacleController_GetPosForTime(self, time);
   }
   BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);
 
   auto const& tracks = TracksAD::getAD(obstacleData->customData).tracks;
 
-  float moveDuration = self->_variableMovementDataProvider->moveDuration;
-  float jumpDuration = self->_variableMovementDataProvider->jumpDuration;
+  VariableMovementW movement = VariableMovementW(self->_variableMovementDataProvider);
+
+  float moveDuration = movement.moveDuration;
+  float jumpDuration = movement.jumpDuration;
   float obstacleDuration = self->_obstacleData->duration;
 
   float jumpTime = (time - moveDuration) / (jumpDuration + obstacleDuration);
@@ -468,9 +475,9 @@ MAKE_HOOK_MATCH(ObstacleController_GetObstacleLength, &ObstacleController::GetOb
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
-  if (self->obstacleData->klass != CustomKlass) return ObstacleController_GetObstacleLength(self);
+  if (self->_obstacleData->klass != CustomKlass) return ObstacleController_GetObstacleLength(self);
 
-  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->obstacleData);
+  auto* obstacleData = reinterpret_cast<CustomJSONData::CustomObstacleData*>(self->_obstacleData);
   if (!obstacleData->customData->value) return ObstacleController_GetObstacleLength(self);
 
   BeatmapObjectAssociatedData const& ad = getAD(obstacleData->customData);

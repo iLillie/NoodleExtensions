@@ -1,4 +1,5 @@
 #include "NELogger.h"
+#include "VariableMovementHelper.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 #include "beatsaber-hook/shared/utils/typedefs-wrappers.hpp"
@@ -150,14 +151,14 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   auto& noteCache = NECaches::getNoteCache(self);
 
   // TODO: reimplement material switching
-  // ArrayW<ConditionalMaterialSwitcher*>& materialSwitchers = noteCache.conditionalMaterialSwitchers;
-  // if (!materialSwitchers) {
-  //   materialSwitchers = self->GetComponentsInChildren<ConditionalMaterialSwitcher*>();
-  // }
+  ArrayW<ConditionalMaterialSwitcher*>& materialSwitchers = noteCache.conditionalMaterialSwitchers;
+  if (!materialSwitchers) {
+    materialSwitchers = self->GetComponentsInChildren<ConditionalMaterialSwitcher*>();
+  }
 
-  // for (auto* materialSwitcher : materialSwitchers) {
-  //   materialSwitcher->_renderer->set_sharedMaterial(materialSwitcher->_material0);
-  // }
+  for (auto* materialSwitcher : materialSwitchers) {
+    materialSwitcher->_renderer->set_sharedMaterial(materialSwitcher->_material0);
+  }
   noteCache.dissolveEnabled = false;
 
   NoteJump* noteJump = self->_noteMovement->_jump;
@@ -193,9 +194,10 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   Vector3 moveStartPos = noteSpawnData->moveStartOffset;
   Vector3 moveEndPos = noteSpawnData->moveEndOffset;
   Vector3 jumpEndPos = noteSpawnData->jumpEndOffset;
+  auto movement = VariableMovementW(self->_noteMovement->_variableMovementDataProvider);
   float jumpGravity =
-      self->_noteMovement->_variableMovementDataProvider->CalculateCurrentNoteJumpGravity(noteSpawnData->gravityBase);
-  float halfJumpDuration = self->_noteMovement->_variableMovementDataProvider->halfJumpDuration;
+      movement.CalculateCurrentNoteJumpGravity(noteSpawnData->gravityBase);
+  float halfJumpDuration = movement.halfJumpDuration;
 
   float zOffset = self->_noteMovement->_zOffset;
   moveStartPos.z += zOffset;
@@ -226,9 +228,9 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
 
   static auto CustomKlass = classof(CustomJSONData::CustomNoteData*);
 
-  if (self->noteData->klass != CustomKlass) return NoteController_ManualUpdate(self);
+  if (self->_noteData->klass != CustomKlass) return NoteController_ManualUpdate(self);
 
-  auto* customNoteData = reinterpret_cast<CustomJSONData::CustomNoteData*>(self->noteData);
+  auto* customNoteData = reinterpret_cast<CustomJSONData::CustomNoteData*>(self->_noteData);
   if (!customNoteData->customData) {
     noteUpdateAD = nullptr;
     noteTracks.clear();
@@ -252,7 +254,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
 
   NoteJump* noteJump = self->_noteMovement->_jump;
   NoteFloorMovement* floorMovement = self->_noteMovement->_floorMovement;
-  IVariableMovementDataProvider* variableMovementDataProvider = self->_noteMovement->_variableMovementDataProvider;
+  VariableMovementW variableMovementDataProvider = self->_noteMovement->_variableMovementDataProvider;
 
 
 
@@ -261,7 +263,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   if (time) {
     normalTime = time.value();
   } else {
-    float jumpDuration = variableMovementDataProvider->jumpDuration;
+    float jumpDuration = variableMovementDataProvider.jumpDuration;
     float elapsedTime = TimeSourceHelper::getSongTime(noteJump->_audioTimeSyncController) -
                         (customNoteData->time - (jumpDuration * 0.5f));
     normalTime = elapsedTime / jumpDuration;
@@ -276,8 +278,8 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
     floorMovement->_moveEndOffset = ad.moveEndPos + offsetPos;
     noteJump->_startOffset = ad.moveEndPos + offsetPos;
     noteJump->_endOffset = ad.jumpEndPos + offsetPos;
-    noteJump->_startPos = NEVector::Vector3(variableMovementDataProvider->moveEndPosition) + noteJump->_startOffset;
-    noteJump->_endPos = NEVector::Vector3(variableMovementDataProvider->jumpEndPosition) + noteJump->_endOffset;
+    noteJump->_startPos = NEVector::Vector3(variableMovementDataProvider.moveEndPosition) + noteJump->_startOffset;
+    noteJump->_endPos = NEVector::Vector3(variableMovementDataProvider.jumpEndPosition) + noteJump->_endOffset;
   }
 
   auto transform = self->get_transform();
@@ -318,11 +320,11 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   bool isDissolving = offset.dissolve.value_or(0) > 0 || offset.dissolveArrow.value_or(0) > 0;
   if (hasDissolveOffset && noteCache.dissolveEnabled != isDissolving && noteDissolveConfig) {
     // TODO: reimplement material switching
-    // ArrayW<ConditionalMaterialSwitcher*> materialSwitchers = noteCache.conditionalMaterialSwitchers;
-    // for (auto* materialSwitcher : materialSwitchers) {
-    //   materialSwitcher->_renderer->set_sharedMaterial(isDissolving ? materialSwitcher->_material1
-    //                                                                : materialSwitcher->_material0);
-    // }
+    ArrayW<ConditionalMaterialSwitcher*> materialSwitchers = noteCache.conditionalMaterialSwitchers;
+    for (auto* materialSwitcher : materialSwitchers) {
+      materialSwitcher->_renderer->set_sharedMaterial(isDissolving ? materialSwitcher->_material1
+                                                                   : materialSwitcher->_material0);
+    }
     noteCache.dissolveEnabled = isDissolving;
   }
 
@@ -341,7 +343,7 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
   static auto* bombNoteControllerClass = classof(BombNoteController*);
 
   if (il2cpp_functions::class_is_assignable_from(gameNoteControllerClass, self->klass)) {
-    if (offset.dissolveArrow.has_value() && self->noteData->colorType != ColorType::None) {
+    if (offset.dissolveArrow.has_value() && self->_noteData->colorType != ColorType::None) {
       auto disappearingArrowController = NECaches::GetDisappearingArrowController((GameNoteController*)self, noteCache);
       if (noteDissolveConfig) {
         disappearingArrowController->SetArrowTransparency(*offset.dissolveArrow);
@@ -395,7 +397,7 @@ MAKE_HOOK_MATCH(NoteController_SendNoteWasCutEvent_LinkedNotes, &NoteController:
 
   if (!Hooks::isNoodleHookEnabled()) return;
 
-  auto* customNoteData = il2cpp_utils::try_cast<CustomJSONData::CustomNoteData>(self->noteData).value_or(nullptr);
+  auto* customNoteData = il2cpp_utils::try_cast<CustomJSONData::CustomNoteData>(self->_noteData).value_or(nullptr);
   if (!customNoteData || !customNoteData->customData) {
     return;
   }
@@ -414,7 +416,7 @@ MAKE_HOOK_MATCH(NoteController_SendNoteWasCutEvent_LinkedNotes, &NoteController:
   auto cuts = list | Sombrero::Linq::Functional::Select([&](auto const& noteController) {
                 return std::pair(
                     noteController,
-                    NoteCutInfo(noteController->noteData, noteCutInfo->speedOK, noteCutInfo->directionOK,
+                    NoteCutInfo(noteController->_noteData, noteCutInfo->speedOK, noteCutInfo->directionOK,
                                 noteCutInfo->saberTypeOK, noteCutInfo->wasCutTooSoon, noteCutInfo->saberSpeed,
                                 noteCutInfo->saberDir, noteCutInfo->saberType, noteCutInfo->timeDeviation,
                                 noteCutInfo->cutDirDeviation, noteCutInfo->cutPoint, noteCutInfo->cutNormal,
