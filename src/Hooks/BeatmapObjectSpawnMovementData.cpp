@@ -104,11 +104,11 @@ MAKE_HOOK_MATCH(GetObstacleSpawnData, &BeatmapObjectSpawnMovementData::GetObstac
 
   float obstacleHeight;
   if (height.has_value()) {
-    obstacleHeight = height.value() * GlobalNamespace::StaticBeatmapObjectSpawnMovementData::get_layerHeight();
+    obstacleHeight = height.value() * 0.6f;
   } else {
     // _topObstaclePosY =/= _obstacleTopPosY
     obstacleHeight =
-        std::min(obstacleData->height * GlobalNamespace::StaticBeatmapObjectSpawnMovementData::get_layerHeight(),
+        std::min(obstacleData->height * 0.6f,
                  self->_obstacleTopPosY - obstacleOffset.y);
   }
 

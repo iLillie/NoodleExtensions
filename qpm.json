@@ -47,7 +47,7 @@
         "pwsh ./scripts/pull-tombstone.ps1"
       ]
     },
-    "ndk": "^27.3.13750724",
+    "ndk": "^29.0",
     "qmodIncludeDirs": [
       "./build",
       "./extern/libs"
@@ -58,39 +58,39 @@
   "dependencies": [
     {
       "id": "beatsaber-hook",
-      "versionRange": "^6.4.2",
+      "versionRange": "^7.4.2",
       "additionalData": {}
     },
     {
       "id": "bs-cordl",
-      "versionRange": "4008.*",
+      "versionRange": "4200.*",
       "additionalData": {}
     },
     {
       "id": "custom-types",
-      "versionRange": "^0.18.4",
+      "versionRange": "^0.19.0",
       "additionalData": {
         "includeQmod": true
       }
     },
     {
       "id": "custom-json-data",
-      "versionRange": "^0.24.4",
+      "versionRange": "^0.25.0",
       "additionalData": {}
     },
     {
       "id": "config-utils",
-      "versionRange": "2.0.3",
+      "versionRange": "=2.0.4",
       "additionalData": {}
     },
     {
       "id": "tracks",
-      "versionRange": "^2.4.5",
+      "versionRange": "^2.5.0",
       "additionalData": {}
     },
     {
       "id": "songcore",
-      "versionRange": "^1.1.25",
+      "versionRange": "^1.2.0",
       "additionalData": {
         "includeQmod": true
       }
@@ -124,7 +124,12 @@
     },
     {
       "id": "bsml",
-      "versionRange": "^0.4.55",
+      "versionRange": "^0.5.1",
+      "additionalData": {}
+    },
+    {
+      "id": "flamingo",
+      "versionRange": "^1.1.2",
       "additionalData": {}
     }
   ]

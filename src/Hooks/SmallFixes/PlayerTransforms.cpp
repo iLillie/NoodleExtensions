@@ -35,7 +35,7 @@ MAKE_HOOK_MATCH(PlayerTransforms_Awake, &PlayerTransforms::Awake, void, PlayerTr
 }
 MAKE_HOOK_MATCH(PlayerTransforms_HeadsetOffsetZ, &PlayerTransforms::Update, void, PlayerTransforms* self) {
   if (!Hooks::isNoodleHookEnabled()) return PlayerTransforms_HeadsetOffsetZ(self);
-  if (self->_overrideHeadPos) return PlayerTransforms_HeadsetOffsetZ(self);
+  if (self->_overrideHeadPos) return;
 
   auto const& manager = TrackParenting::PlayerTrack::GetPlayerTracks();
   if (manager.empty()) return PlayerTransforms_HeadsetOffsetZ(self);

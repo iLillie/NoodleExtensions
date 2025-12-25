@@ -27,7 +27,7 @@ MAKE_HOOK_MATCH(MultiplayerLevelScenesTransitionSetupDataSO_Init,
 
   // TODO: Fix environment override
   SceneTransitionHelper::Patch(customBeatmapLevel.value(), self->beatmapKey,
-                               self->GetOrLoadMultiplayerEnvironmentInfo(),
+                               self->_environmentInfo,
                                self->gameplayCoreSceneSetupData->playerSpecificSettings);
 
   MultiplayerLevelScenesTransitionSetupDataSO_Init(self);
